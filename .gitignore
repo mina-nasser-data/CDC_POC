@@ -1,0 +1,31 @@
+# env / secrets
+.env
+*.env
+secrets/
+*.pem
+*.key
+
+# oracle / db data
+*.db
+*.sqlite
+*.sqlite3
+data/
+volumes/
+
+# docker / temp
+*.log
+tmp/
+temp/
+.cache/
+
+# python
+__pycache__/
+*.pyc
+
+# ide
+.vscode/
+.idea/
+
+# os
+.DS_Store
+Thumbs.db
