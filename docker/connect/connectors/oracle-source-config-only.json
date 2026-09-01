@@ -1,0 +1,25 @@
+{
+  "connector.class": "io.debezium.connector.oracle.OracleConnector",
+  "tasks.max": "1",
+
+  "database.hostname": "oracle",
+  "database.port": "1521",
+  "database.user": "C##DBZUSER",
+  "database.password": "DbzUserPass123",
+  "database.dbname": "xepdb1",
+  "database.pdb.name": "XEPDB1",
+
+  "topic.prefix": "oracle21",
+  "database.connection.adapter": "logminer",
+
+  "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
+  "schema.history.internal.kafka.topic": "schemahistory.oracle21",
+
+  "snapshot.mode": "initial",
+  "table.include.list": "APPUSER.CDC_TEST",
+
+  "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "key.converter.schemas.enable": "true",
+  "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "value.converter.schemas.enable": "true"
+}
