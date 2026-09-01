@@ -23,6 +23,13 @@
     "key.converter": "org.apache.kafka.connect.json.JsonConverter",
     "key.converter.schemas.enable": "true",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-    "value.converter.schemas.enable": "true"
+    "value.converter.schemas.enable": "true",
+
+    "include.schema.changes": "true",
+    "include.unknown.datatypes": "false",
+    "decimal.handling.mode": "precise",
+    "time.precision.mode": "adaptive",
+    "log.mining.continuous.mine": "true",
+    "lob.erase.poll.interval.ms": "0"
   }
 }
