@@ -1,13 +1,14 @@
 WHENEVER SQLERROR EXIT SQL.SQLCODE;
 
--- Run as SYS in CDB root where needed
+PROMPT === [Oracle Init] Configure CDC prerequisites ===
+
+-- Root-level logging settings
 ALTER SESSION SET CONTAINER = CDB$ROOT;
 
--- Minimal + full supplemental logging
 ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
 ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
 
--- Create Debezium connector user in PDB
+-- Create Debezium connector user in the PDB
 ALTER SESSION SET CONTAINER = XEPDB1;
 
 CREATE USER DBZUSER IDENTIFIED BY DbzUserPass123
@@ -57,8 +58,6 @@ GRANT SELECT ON SYS.USER$ TO DBZUSER;
 GRANT SELECT ON SYS.TS$ TO DBZUSER;
 GRANT SELECT ON SYS.PROPS$ TO DBZUSER;
 
-EXIT;
+PROMPT === [Oracle Init] CDC user created ===
 
--- why?
--- The exact grants vary somewhat by Oracle version and deployment mode, 
--- but Debezium Oracle connector docs require a dedicated connector user with LogMiner-related privileges and access to relevant V$ / dictionary views.
+EXIT;

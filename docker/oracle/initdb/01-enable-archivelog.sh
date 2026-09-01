@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== Enabling ARCHIVELOG mode for Oracle XE ==="
+echo "=== [Oracle Init] Enabling ARCHIVELOG mode ==="
 
 sqlplus -s / as sysdba <<'EOF'
 WHENEVER SQLERROR EXIT SQL.SQLCODE
@@ -15,6 +15,8 @@ ARCHIVE LOG LIST;
 
 EXIT;
 EOF
+
+echo "=== [Oracle Init] ARCHIVELOG step complete ==="
 
 # Why
 # Debezium Oracle LogMiner requires redo/archive logging to mine changes. 
