@@ -13,9 +13,9 @@ Write-Host ""
 $sqlFile = "$env:TEMP\update-test.sql"
 
 $sqlContent = @"
-UPDATE CDC_TEST SET NAME = 'updated-name' WHERE ID = 1;
+UPDATE CDC_TEST SET NAME = 'updated-name' WHERE ID = 2;
 COMMIT;
-SELECT * FROM CDC_TEST WHERE ID = 1;
+SELECT * FROM CDC_TEST WHERE ID = 2;
 EXIT;
 "@
 
