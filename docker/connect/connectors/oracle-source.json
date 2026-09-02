@@ -41,7 +41,7 @@
     "database.fetch.size": "5000",
     "jdbc.lob.chunk.size": "102400",
     "jdbc.batch.size": "20000",
-    
+    "binary.handling.mode": "base64",
     "post.processors": "reselectColumns",
     "post.processors.reselectColumns.type": "io.debezium.processors.reselect.ReselectColumnsPostProcessor",
     "post.processors.reselectColumns.reselect.columns.include.list": "APPUSER.CDC_TEST:DESCRIPTION,PAYLOAD_XML,BINARY_DATA",

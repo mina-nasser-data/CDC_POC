@@ -4,7 +4,7 @@
 
   "database.hostname": "oracle",
   "database.port": "1521",
-  "database.user": "DBZUSER",
+  "database.user": "C##DBZUSER",
   "database.password": "DbzUserPass123",
   "database.dbname": "xepdb1",
   "database.pdb.name": "XEPDB1",

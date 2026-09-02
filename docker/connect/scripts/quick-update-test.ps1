@@ -16,12 +16,12 @@ $sqlContent = @"
 UPDATE CDC_TEST
 SET
     NAME = 'updated-name-2',
-    DESCRIPTION = 'updated clob text for id 4',
-    PAYLOAD_XML = XMLTYPE('<root><id>4</id><name>updated-name-2</name><status>updated</status></root>'),
+    DESCRIPTION = 'updated clob text for id 5',
+    PAYLOAD_XML = XMLTYPE('<root><id>5</id><name>updated-name-2</name><status>updated</status></root>'),
     BINARY_DATA = HEXTORAW('CAFEBABE')
-WHERE ID = 4;
+WHERE ID = 5;
 COMMIT;
-SELECT * FROM CDC_TEST WHERE ID = 4;
+SELECT * FROM CDC_TEST WHERE ID = 5;
 EXIT;
 "@
 

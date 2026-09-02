@@ -29,7 +29,7 @@ While configured, it's not effective without proper Oracle-side logging setup.
 
 Create a new initialization script or run manually:
 
-**File**: `docker/oracle/initdb/02b-configure-cdc-lob-logging.sql`
+**File**: `docker/oracle/initdb/04-configure-cdc-lob-logging.sql`
 
 ```sql
 ALTER SESSION SET CONTAINER = XEPDB1;
@@ -85,7 +85,7 @@ Critical additions/changes:
 docker volume rm cdc_scb_oracle-data cdc_scb_kafka-data
 
 # 3. Update oracle init scripts to include LOB logging
-# Place 02b-configure-cdc-lob-logging.sql in docker/oracle/initdb/
+# Place 04-configure-cdc-lob-logging.sql in docker/oracle/initdb/
 
 # 4. Update connector configuration
 # Copy oracle-source-FIXED.json to oracle-source.json
@@ -186,7 +186,7 @@ Solution:
 
 ## Files Changed
 
-1. ✅ Created: `docker/oracle/initdb/02b-configure-cdc-lob-logging.sql`
+1. ✅ Created: `docker/oracle/initdb/04-configure-cdc-lob-logging.sql`
 2. 📝 Update: `docker/connect/connectors/oracle-source.json` (use oracle-source-FIXED.json as reference)
 3. ✅ Created: `docker/connect/connectors/oracle-source-FIXED.json` (reference implementation)
 

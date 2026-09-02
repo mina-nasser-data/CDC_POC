@@ -4,7 +4,7 @@
 
 - [ ] Stop all containers: `docker-compose down`
 - [ ] Delete volumes: `docker volume rm cdc_scb_oracle-data cdc_scb_kafka-data`
-- [ ] Create/update file: `docker/oracle/initdb/02b-configure-cdc-lob-logging.sql`
+- [ ] Create/update file: `docker/oracle/initdb/04-configure-cdc-lob-logging.sql`
 - [ ] Verify file contents include:
   - [ ] `ALTER TABLE APPUSER.CDC_TEST ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;`
   - [ ] `ALTER TABLE APPUSER.CDC_TEST MODIFY (DESCRIPTION LOB (CACHE LOGGING));`
@@ -102,7 +102,7 @@ Once all verifications pass:
 
 | File | Changes |
 |------|---------|
-| `docker/oracle/initdb/02b-configure-cdc-lob-logging.sql` | NEW - LOB logging config |
+| `docker/oracle/initdb/04-configure-cdc-lob-logging.sql` | NEW - table supplemental logging config |
 | `docker/connect/connectors/oracle-source.json` | UPDATED - LOB parameters |
 | `docs/LOB-UNAVAILABLE-VALUE-FIX.md` | NEW - Detailed explanation |
 | `docker/connect/connectors/oracle-source-FIXED.json` | NEW - Reference implementation |
