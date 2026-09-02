@@ -13,10 +13,7 @@
 
     "topic.prefix": "oracle21",
     "database.connection.adapter": "logminer",
-    "lob.enabled": "true",
-    "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
-    "schema.history.internal.kafka.topic": "schemahistory.oracle21",
-
+    
     "snapshot.mode": "initial",
     "table.include.list": "APPUSER.CDC_TEST",
 
@@ -29,7 +26,27 @@
     "include.unknown.datatypes": "false",
     "decimal.handling.mode": "precise",
     "time.precision.mode": "adaptive",
+    
+    "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
+    "schema.history.internal.kafka.topic": "schemahistory.oracle21",
+
     "log.mining.continuous.mine": "true",
-    "lob.erase.poll.interval.ms": "0"
+    "log.mining.select.all.tables": "false",
+    "log.mining.include.regex.table.list": "APPUSER.CDC_TEST",
+    
+    "lob.enabled": "true",
+    "lob.chunk.size": "102400",
+    "lob.erase.poll.interval.ms": "0",
+    
+    "database.fetch.size": "5000",
+    "jdbc.lob.chunk.size": "102400",
+    "jdbc.batch.size": "20000",
+    
+    "post.processors": "reselectColumns",
+    "post.processors.reselectColumns.type": "io.debezium.processors.reselect.ReselectColumnsPostProcessor",
+    "post.processors.reselectColumns.reselect.columns.include.list": "APPUSER.CDC_TEST:DESCRIPTION,PAYLOAD_XML,BINARY_DATA",
+    
+    "provide.transaction.metadata": "false",
+    "snapshot.locking.mode": "none"
   }
 }

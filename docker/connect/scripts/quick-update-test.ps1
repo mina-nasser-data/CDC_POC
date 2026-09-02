@@ -13,9 +13,15 @@ Write-Host ""
 $sqlFile = "$env:TEMP\update-test.sql"
 
 $sqlContent = @"
-UPDATE CDC_TEST SET NAME = 'updated-name' WHERE ID = 2;
+UPDATE CDC_TEST
+SET
+    NAME = 'updated-name-2',
+    DESCRIPTION = 'updated clob text for id 4',
+    PAYLOAD_XML = XMLTYPE('<root><id>4</id><name>updated-name-2</name><status>updated</status></root>'),
+    BINARY_DATA = HEXTORAW('CAFEBABE')
+WHERE ID = 4;
 COMMIT;
-SELECT * FROM CDC_TEST WHERE ID = 2;
+SELECT * FROM CDC_TEST WHERE ID = 4;
 EXIT;
 "@
 

@@ -15,14 +15,14 @@ $sqlFile = "$env:TEMP\insert-test.sql"
 $sqlContent = @"
 INSERT INTO CDC_TEST (ID, NAME, DESCRIPTION, PAYLOAD_XML, BINARY_DATA)
 VALUES (
-    2,
-    'second_row',
+    4,
+    'fourth_row',
     'initial clob text',
-    XMLTYPE('<root><id>2</id><name>second_row</name></root>'),
+    XMLTYPE('<root><id>4</id><name>fourth_row</name></root>'),
     HEXTORAW('DEADBEEF')
 );
 COMMIT;
-SELECT * FROM CDC_TEST WHERE ID = 2;
+SELECT * FROM CDC_TEST WHERE ID = 4;
 EXIT;
 "@
 
