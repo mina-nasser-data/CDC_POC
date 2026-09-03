@@ -3,6 +3,19 @@ set -e
 
 echo "=== [Oracle Init] Enabling ARCHIVELOG mode ==="
 
+log_mode=$(sqlplus -s / as sysdba <<'EOF'
+WHENEVER SQLERROR EXIT SQL.SQLCODE
+SET HEADING OFF FEEDBACK OFF PAGESIZE 0
+SELECT LOG_MODE FROM V$DATABASE;
+EXIT;
+EOF
+)
+
+if echo "$log_mode" | grep -q "ARCHIVELOG"; then
+	echo "=== [Oracle Init] ARCHIVELOG mode already enabled ==="
+	exit 0
+fi
+
 sqlplus -s / as sysdba <<'EOF'
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 

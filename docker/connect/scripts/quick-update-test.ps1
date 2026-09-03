@@ -15,10 +15,10 @@ $sqlFile = "$env:TEMP\update-test.sql"
 $sqlContent = @"
 UPDATE CDC_TEST
 SET
-    NAME = 'updated-name-2',
+    NAME = 'fifth_user_updated',
     DESCRIPTION = 'updated clob text for id 555',
     PAYLOAD_XML = XMLTYPE('<root><id>5</id><name>updated-name-2</name><status>updated_status</status></root>'),
-    BINARY_DATA = HEXTORAW('CAFEBABEXX')
+    BINARY_DATA = HEXTORAW('DEADBEEF')
 WHERE ID = 5;
 COMMIT;
 SELECT * FROM CDC_TEST WHERE ID = 5;
