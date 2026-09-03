@@ -15,13 +15,13 @@ $sqlFile = "$env:TEMP\update-test.sql"
 $sqlContent = @"
 UPDATE CDC_TEST
 SET
-    NAME = 'fifth_user_updated',
-    DESCRIPTION = 'updated clob text for id 555',
-    PAYLOAD_XML = XMLTYPE('<root><id>5</id><name>updated-name-2</name><status>updated_status</status></root>'),
+    NAME = '2nd_user_updated_2',
+    DESCRIPTION = 'updated clob text for id 222',
+    PAYLOAD_XML = XMLTYPE('<root><id>2</id><name>2nd_user_updated_2</name><status>updated_status</status></root>'),
     BINARY_DATA = HEXTORAW('DEADBEEF')
-WHERE ID = 5;
+WHERE ID = 2;
 COMMIT;
-SELECT * FROM CDC_TEST WHERE ID = 5;
+SELECT * FROM CDC_TEST WHERE ID = 2;
 EXIT;
 "@
 
