@@ -3,7 +3,7 @@
 # Check CDC payload from Kafka topic - Bash version
 # Robust error handling and message parsing
 
-TOPIC="oracle21.APPUSER.CDC_TEST"
+TOPIC="oracle21.APPUSER.CDC_MAIN_TABLE"
 KAFKA_CONTAINER="kafka"
 
 echo "=========================================="

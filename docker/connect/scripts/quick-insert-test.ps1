@@ -13,16 +13,13 @@ Write-Host ""
 $sqlFile = "$env:TEMP\insert-test.sql"
 
 $sqlContent = @"
-INSERT INTO CDC_TEST (ID, NAME, DESCRIPTION, PAYLOAD_XML, BINARY_DATA)
+INSERT INTO CDC_MAIN_TABLE (recid,xmlrecord)
 VALUES (
-    2,
-    '2_row',
-    'initial clob text',
-    XMLTYPE('<root><id>2</id><name>2_row</name></root>'),
-    HEXTORAW('DEADBEEF')
+    8,
+    XMLTYPE('<root><id>8</id><acount_id>8</acount_id><name>user name 8</name><balance>7856.666</balance></root>')
 );
 COMMIT;
-SELECT * FROM CDC_TEST WHERE ID = 2;
+SELECT * FROM CDC_MAIN_TABLE WHERE recid = 8;
 EXIT;
 "@
 

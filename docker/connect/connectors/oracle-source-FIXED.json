@@ -15,12 +15,12 @@
     "database.connection.adapter": "logminer",
     
     "snapshot.mode": "initial",
-    "table.include.list": "APPUSER.CDC_TEST",
+    "table.include.list": "APPUSER.CDC_MAIN_TABLE",
 
     "key.converter": "org.apache.kafka.connect.json.JsonConverter",
-    "key.converter.schemas.enable": "true",
+    "key.converter.schemas.enable": "false",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-    "value.converter.schemas.enable": "true",
+    "value.converter.schemas.enable": "false",
     
     "include.schema.changes": "true",
     "include.unknown.datatypes": "false",
@@ -32,8 +32,8 @@
 
     "log.mining.continuous.mine": "true",
     "log.mining.select.all.tables": "false",
-    "log.mining.include.regex.table.list": "APPUSER.CDC_TEST",
-    
+    "log.mining.include.regex.table.list": "APPUSER.CDC_MAIN_TABLE",
+    "log.mining.strategy": "online_catalog",
     "lob.enabled": "true",
     "lob.chunk.size": "102400",
     "lob.erase.poll.interval.ms": "0",
@@ -44,7 +44,7 @@
     
     "post.processors": "reselectColumns",
     "post.processors.reselectColumns.type": "io.debezium.processors.reselect.ReselectColumnsPostProcessor",
-    "post.processors.reselectColumns.reselect.columns.include.list": "APPUSER.CDC_TEST:DESCRIPTION,PAYLOAD_XML,BINARY_DATA",
+    "post.processors.reselectColumns.reselect.columns.include.list": "APPUSER.CDC_MAIN_TABLE:xmlrecord",
     
     "provide.transaction.metadata": "false",
     "snapshot.locking.mode": "none"

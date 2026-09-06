@@ -17,12 +17,12 @@
   "schema.history.internal.kafka.topic": "schemahistory.oracle21",
 
   "snapshot.mode": "initial",
-  "table.include.list": "APPUSER.CDC_TEST",
-
+  "table.include.list": "APPUSER.CDC_MAIN_TABLE",
+  "log.mining.strategy": "online_catalog",
   "key.converter": "org.apache.kafka.connect.json.JsonConverter",
-  "key.converter.schemas.enable": "true",
+  "key.converter.schemas.enable": "false",
   "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-  "value.converter.schemas.enable": "true",
+  "value.converter.schemas.enable": "false",
 
   "include.schema.changes": "true",
   "include.unknown.datatypes": "false",
@@ -33,5 +33,5 @@
 
   "post.processors": "reselectColumns",
   "post.processors.reselectColumns.type": "io.debezium.processors.reselect.ReselectColumnsPostProcessor",
-  "post.processors.reselectColumns.reselect.columns.include.list": "APPUSER.CDC_TEST:DESCRIPTION,PAYLOAD_XML,BINARY_DATA"
+  "post.processors.reselectColumns.reselect.columns.include.list": "APPUSER.CDC_MAIN_TABLE:xmlrecord"
 }

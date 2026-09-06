@@ -1,7 +1,7 @@
 # Check CDC payload from Kafka topic - Windows/PowerShell version
 # Robust error handling and message parsing
 
-$TOPIC = "oracle21.APPUSER.CDC_TEST"
+$TOPIC = "oracle21.APPUSER.CDC_MAIN_TABLE"
 $KAFKA_CONTAINER = "kafka"
 
 Write-Host "========================================" -ForegroundColor Cyan

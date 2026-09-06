@@ -17,4 +17,3 @@ GRANT CREATE TRIGGER TO APPUSER;
 
 PROMPT === [Oracle Init] APPUSER created ===
 
-EXIT;

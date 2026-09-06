@@ -35,12 +35,12 @@ Create a new initialization script or run manually:
 ALTER SESSION SET CONTAINER = XEPDB1;
 
 -- Enable column-level supplemental logging for LOB columns
-ALTER TABLE APPUSER.CDC_TEST ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
+ALTER TABLE APPUSER.cdc_main_table ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
 
 -- Explicitly configure LOB logging
-ALTER TABLE APPUSER.CDC_TEST MODIFY (DESCRIPTION LOB (CACHE LOGGING));
-ALTER TABLE APPUSER.CDC_TEST MODIFY (PAYLOAD_XML LOB (CACHE LOGGING));
-ALTER TABLE APPUSER.CDC_TEST MODIFY (BINARY_DATA LOB (CACHE LOGGING));
+ALTER TABLE APPUSER.cdc_main_table MODIFY (DESCRIPTION LOB (CACHE LOGGING));
+ALTER TABLE APPUSER.cdc_main_table MODIFY (PAYLOAD_XML LOB (CACHE LOGGING));
+ALTER TABLE APPUSER.cdc_main_table MODIFY (BINARY_DATA LOB (CACHE LOGGING));
 ```
 
 **Key Points**:
@@ -62,7 +62,7 @@ Critical additions/changes:
   
   "log.mining.continuous.mine": "true",
   "log.mining.select.all.tables": "false",  // CHANGED: Be specific about tables
-  "log.mining.include.regex.table_list": "APPUSER.CDC_TEST",  // NEW
+  "log.mining.include.regex.table_list": "APPUSER.cdc_main_table",  // NEW
   
   "database.fetch.size": "5000",         // NEW: JDBC fetch size
   "jdbc.lob.chunk.size": "102400",       // NEW: JDBC LOB handling
@@ -70,7 +70,7 @@ Critical additions/changes:
   
   "post.processors": "reselectColumns",
   "post.processors.reselectColumns.type": "io.debezium.processors.reselect.ReselectColumnsPostProcessor",
-  "post.processors.reselectColumns.reselect.columns.include.list": "APPUSER.CDC_TEST:DESCRIPTION,PAYLOAD_XML,BINARY_DATA"
+  "post.processors.reselectColumns.reselect.columns.include.list": "APPUSER.cdc_main_table:DESCRIPTION,PAYLOAD_XML,BINARY_DATA"
 }
 ```
 
@@ -102,9 +102,9 @@ docker volume rm cdc_scb_oracle-data cdc_scb_kafka-data
 ALTER SESSION SET CONTAINER = XEPDB1;
 
 -- For each LOB column:
-ALTER TABLE APPUSER.CDC_TEST MODIFY (DESCRIPTION LOB (CACHE LOGGING));
-ALTER TABLE APPUSER.CDC_TEST MODIFY (PAYLOAD_XML LOB (CACHE LOGGING));
-ALTER TABLE APPUSER.CDC_TEST MODIFY (BINARY_DATA LOB (CACHE LOGGING));
+ALTER TABLE APPUSER.cdc_main_table MODIFY (DESCRIPTION LOB (CACHE LOGGING));
+ALTER TABLE APPUSER.cdc_main_table MODIFY (PAYLOAD_XML LOB (CACHE LOGGING));
+ALTER TABLE APPUSER.cdc_main_table MODIFY (BINARY_DATA LOB (CACHE LOGGING));
 
 -- Then restart connector with updated config
 ```
@@ -150,7 +150,7 @@ Expected output should show actual data instead of `__debezium_unavailable_value
 | `lob.enabled` | true | Enable LOB column capture |
 | `lob.chunk.size` | 102400 | Read LOBs in 100KB chunks |
 | `log.mining.select_all_tables` | false | Only monitor specified tables (better performance) |
-| `log.mining.include.regex.table_list` | APPUSER.CDC_TEST | Specific table monitoring |
+| `log.mining.include.regex.table_list` | APPUSER.cdc_main_table | Specific table monitoring |
 | `database.fetch.size` | 5000 | JDBC fetch size for result sets |
 | `jdbc.lob.chunk.size` | 102400 | JDBC LOB chunk size matching LOB size |
 | `post.processors.reselectColumns` | Enabled | Re-read LOBs from source table after capture |

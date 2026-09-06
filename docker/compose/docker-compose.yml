@@ -121,11 +121,62 @@ services:
       - risingwave-data:/risingwave/data
     networks:
       - cdc-net
+  superset:
+    build:
+      context: ../superset
+      dockerfile: Dockerfile
+    container_name: superset
+    hostname: superset
+    depends_on:
+      superset-db:
+        condition: service_started
+      risingwave:
+        condition: service_started
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_SECRET_KEY: "cdc-poc-secret-key-change-me"
+      SQLALCHEMY_DATABASE_URI: "postgresql+psycopg2://superset:superset@superset-db:5432/superset"
+      SUPERSET_LOAD_EXAMPLES: "no"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        superset db upgrade &&
+        superset fab create-admin \
+          --username admin \
+          --firstname Superset \
+          --lastname Admin \
+          --email admin@superset.local \
+          --password admin || true &&
+        superset init &&
+        gunicorn \
+          --bind 0.0.0.0:8088 \
+          --workers 2 \
+          --timeout 120 \
+          "superset.app:create_app()"
+    networks:
+      - cdc-net
+
+# Meta-Data db for Superset
+  superset-db:
+    image: postgres:16
+    container_name: superset-db
+    hostname: superset-db
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+    volumes:
+      - superset-db-data:/var/lib/postgresql/data
+    networks:
+      - cdc-net
 volumes:
   oracle-data:
   kafka-data:
   risingwave-data:
-
+  superset-db-data:
+  
 networks:
   cdc-net:
     name: cdc-net

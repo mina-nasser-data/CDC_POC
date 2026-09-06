@@ -3,24 +3,15 @@ WHENEVER SQLERROR EXIT SQL.SQLCODE;
 ALTER SESSION SET CONTAINER = XEPDB1;
 ALTER SESSION SET CURRENT_SCHEMA = APPUSER;
 
-CREATE TABLE CDC_TEST (
-    ID NUMBER(10) PRIMARY KEY,
-    NAME VARCHAR2(100),
-    DESCRIPTION CLOB,
-    PAYLOAD_XML XMLTYPE,
-    BINARY_DATA BLOB,
-    CREATED_AT TIMESTAMP DEFAULT SYSTIMESTAMP
+CREATE TABLE CDC_MAIN_TABLE (
+    recid NUMBER(10) PRIMARY KEY,
+    xmlrecord XMLTYPE
 );
 
-INSERT INTO CDC_TEST (ID, NAME, DESCRIPTION, PAYLOAD_XML, BINARY_DATA)
+INSERT INTO CDC_MAIN_TABLE (recid, xmlrecord)
 VALUES (
     1,
-    'first-row',
-    'initial clob text',
-    XMLTYPE('<root><id>1</id><name>first-row</name></root>'),
-    HEXTORAW('DEADBEEF')
+    XMLTYPE('<root><id>1</id><acount_id>1</acount_id><name>user name</name><balance>1000.00</balance></root>')
 );
 
 COMMIT;
-
-EXIT;

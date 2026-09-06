@@ -62,4 +62,3 @@ GRANT SELECT ON SYS.PROPS$ TO C##DBZUSER CONTAINER = ALL;
 
 PROMPT === [Oracle Init] CDC user created ===
 
-EXIT;

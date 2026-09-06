@@ -6,10 +6,10 @@
 - [ ] Delete volumes: `docker volume rm cdc_scb_oracle-data cdc_scb_kafka-data`
 - [ ] Create/update file: `docker/oracle/initdb/04-configure-cdc-lob-logging.sql`
 - [ ] Verify file contents include:
-  - [ ] `ALTER TABLE APPUSER.CDC_TEST ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;`
-  - [ ] `ALTER TABLE APPUSER.CDC_TEST MODIFY (DESCRIPTION LOB (CACHE LOGGING));`
-  - [ ] `ALTER TABLE APPUSER.CDC_TEST MODIFY (PAYLOAD_XML LOB (CACHE LOGGING));`
-  - [ ] `ALTER TABLE APPUSER.CDC_TEST MODIFY (BINARY_DATA LOB (CACHE LOGGING));`
+  - [ ] `ALTER TABLE APPUSER.cdc_main_table ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;`
+  - [ ] `ALTER TABLE APPUSER.cdc_main_table MODIFY (DESCRIPTION LOB (CACHE LOGGING));`
+  - [ ] `ALTER TABLE APPUSER.cdc_main_table MODIFY (PAYLOAD_XML LOB (CACHE LOGGING));`
+  - [ ] `ALTER TABLE APPUSER.cdc_main_table MODIFY (BINARY_DATA LOB (CACHE LOGGING));`
 
 ## Phase 2: Connector Configuration ✓
 
@@ -19,7 +19,7 @@
   "lob.enabled": "true",
   "lob.chunk.size": "102400",
   "log.mining.select.all.tables": "false",
-  "log.mining.include.regex.table.list": "APPUSER.CDC_TEST",
+  "log.mining.include.regex.table.list": "APPUSER.cdc_main_table",
   "database.fetch.size": "5000",
   "jdbc.lob.chunk.size": "102400",
   "jdbc.batch.size": "20000"
@@ -69,7 +69,7 @@
   ```sql
   SELECT * FROM all_log_groups WHERE table_owner='APPUSER';
   ```
-  Expected: Should show log groups for APPUSER.CDC_TEST
+  Expected: Should show log groups for APPUSER.cdc_main_table
 
 - [ ] Check Debezium connector logs:
   ```powershell
@@ -85,7 +85,7 @@
 - [ ] Check Kafka topic content directly:
   ```bash
   docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 \
-    --topic oracle21.APPUSER.CDC_TEST --from-beginning --max-messages 5
+    --topic oracle21.APPUSER.cdc_main_table --from-beginning --max-messages 5
   ```
 
 ## Phase 8: Ready for RisingWave
@@ -124,7 +124,7 @@ Start-Sleep -Seconds 10
 ## Success Indicators
 
 ✅ When complete, you should see:
-- Kafka topic `oracle21.APPUSER.CDC_TEST` populated
+- Kafka topic `oracle21.APPUSER.cdc_main_table` populated
 - JSON messages with full payload including actual LOB data
 - No `__debezium_unavailable_value` in any CLOB/XML/BLOB fields
 - Ready to consume in RisingWave with complete data
