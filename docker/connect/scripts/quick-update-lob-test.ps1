@@ -12,13 +12,23 @@ Write-Host ""
 # Create temp SQL file
 $sqlFile = "$env:TEMP\update-test.sql"
 
+# Testing CLOB,BLOB
+# $sqlContent = @"
+# UPDATE STMT_ENTRY
+# SET AUDIT_TRAIL = 'LOG_B4_UPDATED: This text changes the original audit log trail profile completely to check the update functionality.',
+#     DIGITAL_RECEIPT = UTL_RAW.CAST_TO_RAW('555044415445445f424c4f42') -- "UPDATED_BLOB" in Hex
+# WHERE ENTRY_ID = 'TXN-2026-001';
+# COMMIT;
+# EXIT;
+# "@
+
+# Testing XMLTYPE
 $sqlContent = @"
-UPDATE CDC_MAIN_TABLE
-SET
-    xmlrecord = XMLTYPE('<root><id>7</id><acount_id>7</acount_id><name>user_name_7</name><balance>4750.25</balance></root>')
-WHERE recid = 7;
+UPDATE STMT_ENTRY
+SET TXN_METADATA = XMLTYPE('<t24_meta><vendor>B5_TEST_PAY</vendor><status>AMENDED_BY_B5_TEST</status></t24_meta>')
+WHERE ENTRY_ID = 'TXN-2026-007';
 COMMIT;
-SELECT * FROM CDC_MAIN_TABLE WHERE recid = 7;   
+  
 EXIT;
 "@
 

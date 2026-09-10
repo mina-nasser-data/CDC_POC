@@ -13,13 +13,14 @@ Write-Host ""
 $sqlFile = "$env:TEMP\insert-test.sql"
 
 $sqlContent = @"
-INSERT INTO CDC_MAIN_TABLE (recid,xmlrecord)
+INSERT INTO STMT_ENTRY (ENTRY_ID, ACCOUNT_NUMBER, BOOKING_DATE, TXN_CODE, AMOUNT, CURRENCY, TXN_METADATA, AUDIT_TRAIL, DIGITAL_RECEIPT)
 VALUES (
-    8,
-    XMLTYPE('<root><id>8</id><acount_id>8</acount_id><name>user name 8</name><balance>7856.666</balance></root>')
+    'TXN-2026-011', '1000293847', TO_DATE('2026-09-08', 'YYYY-MM-DD'), 'REMT', 24250.00, 'EGP',
+    XMLTYPE('<t24_meta><orig_currency>USD</orig_currency><orig_amount>500.00</orig_amount><fx_rate>48.50</fx_rate></t24_meta>'),
+    'LOG: 2026-09-08T09:30:45Z - Inbound SWIFT wire transfer cleared. Sender: RemitCorp Intl. FX booking executed at central treasury desk spot rate 48.50.',
+    UTL_RAW.CAST_TO_RAW('255044462d53574946545f4d543130335f52454d495454414e4345')
 );
 COMMIT;
-SELECT * FROM CDC_MAIN_TABLE WHERE recid = 8;
 EXIT;
 "@
 

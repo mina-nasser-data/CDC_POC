@@ -13,12 +13,10 @@ Write-Host ""
 $sqlFile = "$env:TEMP\delete-test.sql"
 
 $sqlContent = @"
-DELETE FROM CDC_MAIN_TABLE
-WHERE recid = 8;
+DELETE FROM STMT_ENTRY 
+WHERE ENTRY_ID = 'TXN-2026-009';
 
 COMMIT;
-
-SELECT * FROM CDC_MAIN_TABLE WHERE recid = 8;
 
 EXIT;
 "@

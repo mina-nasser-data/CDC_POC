@@ -15,7 +15,7 @@
     "database.connection.adapter": "logminer",
     
     "snapshot.mode": "initial",
-    "table.include.list": "APPUSER.CDC_MAIN_TABLE",
+    "table.include.list": "APPUSER.STMT_ENTRY",
 
     "key.converter": "org.apache.kafka.connect.json.JsonConverter",
     "key.converter.schemas.enable": "false", 
@@ -23,8 +23,7 @@
     "value.converter.schemas.enable": "false",
     
     "include.schema.changes": "true",
-    "include.unknown.datatypes": "false",
-    "decimal.handling.mode": "precise",
+    "decimal.handling.mode": "string",
     "time.precision.mode": "adaptive",
     
     "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
@@ -32,7 +31,7 @@
 
     "log.mining.continuous.mine": "true",
     "log.mining.select.all.tables": "false",
-    "log.mining.include.regex.table.list": "APPUSER.CDC_MAIN_TABLE",
+    "log.mining.include.regex.table.list": "APPUSER.STMT_ENTRY",
     "log.mining.strategy": "online_catalog",
 
     "lob.enabled": "true",
@@ -43,9 +42,12 @@
     "jdbc.lob.chunk.size": "102400",
     "jdbc.batch.size": "20000",
     "binary.handling.mode": "base64",
+    
+
+    "include.unknown.datatypes": "true",
     "post.processors": "reselectColumns",
     "post.processors.reselectColumns.type": "io.debezium.processors.reselect.ReselectColumnsPostProcessor",
-    "post.processors.reselectColumns.reselect.columns.include.list": "APPUSER.CDC_MAIN_TABLE:xmlrecord",
+    "post.processors.reselectColumns.reselect.columns.include.list": "APPUSER.STMT_ENTRY:TXN_METADATA,APPUSER.STMT_ENTRY:AUDIT_TRAIL,APPUSER.STMT_ENTRY:DIGITAL_RECEIPT,APPUSER.STMT_ENTRY:TXN_METADATA_BINARY",
     
     "provide.transaction.metadata": "false",
     "snapshot.locking.mode": "none"

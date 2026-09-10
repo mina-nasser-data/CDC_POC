@@ -13,20 +13,20 @@ $oracleDb = "xepdb1"
 # SQL script to execute
 $sqlScript = @"
 -- 1. INSERT new data
-INSERT INTO CDC_MAIN_TABLE (id, name, email, created_at) 
+INSERT INTO STMT_ENTRY (id, name, email, created_at) 
 VALUES (100, 'Test User 1', 'test1@example.com', SYSDATE);
 
 COMMIT;
 
 -- 2. UPDATE data (here before and after will be captured)
-UPDATE CDC_MAIN_TABLE 
+UPDATE STMT_ENTRY 
 SET email = 'test1-updated@example.com', created_at = SYSDATE 
 WHERE id = 100;
 
 COMMIT;
 
 -- 3. Display current data
-SELECT * FROM CDC_MAIN_TABLE WHERE id = 100;
+SELECT * FROM STMT_ENTRY WHERE id = 100;
 "@
 
 Write-Host "Executing SQL operations on Oracle..." -ForegroundColor Yellow
