@@ -147,18 +147,12 @@ Debezium serializes keys and values into JSON with explicit schema definitions:
 
 ### Step-by-Step Installation
 
-1. **Clone the Repository**
-   ```powershell
-   git clone -b mina_branch <GITHUB_REPO_URL> CDC_SCB_final
-   cd CDC_SCB_final
-   ```
-
-2. **Start the Service Stack**
+1. **Start the Service Stack**
    ```powershell
    docker compose --env-file .env -f .\docker\compose\docker-compose.yml up -d
    ```
 
-3. **Initialize Oracle Database**
+2. **Initialize Oracle Database**
    Enter the Oracle container and execute setup scripts in order:
    ```bash
    docker exec -it oracle bash
@@ -173,19 +167,19 @@ Debezium serializes keys and values into JSON with explicit schema definitions:
    @/container-entrypoint-initdb.d/05-configure-cdc-lob-logging.sql
    ```
 
-4. **Register Debezium Oracle Connector**
+3. **Register Debezium Oracle Connector**
    From the host machine PowerShell prompt:
    ```powershell
    .\docker\connect\scripts\register-oracle-connector.ps1
    ```
 
-5. **Verify Connector Health**
+4. **Verify Connector Health**
    ```powershell
    .\docker\connect\scripts\check-connector-status.ps1
    ```
    *Expected Output: Both `connector` and `tasks` state must report `RUNNING`.*
 
-6. **Validate Pipeline Stream**
+5. **Validate Pipeline Stream**
    ```powershell
    .\docker\connect\scripts\quick-insert-test.ps1
    ```
@@ -257,10 +251,3 @@ Benchmarking and validation scenarios conducted during development:
 * **Production K8s Deployment**: Migrate local Docker Compose setup to Kubernetes using provided manifests under `k8s/`.
 
 ---
-
-## Documentation
-
-Full project documentation and troubleshooting references can be found in the `docs/` folder:
-* `docs/architecture.md`
-* `docs/troubleshooting.md`
-* `docs/datatype-behavior.md`
