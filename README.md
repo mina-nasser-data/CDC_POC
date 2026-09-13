@@ -192,10 +192,10 @@ Benchmarking and validation scenarios conducted during development:
 
 | Test Scenario | Executed Script | Observed Latency / Behavior | Status |
 | :--- | :--- | :--- | :--- |
-| **Scalar Column DML** | `quick-update-nonlob-test.ps1` | **0.078 seconds** per 1,000 updates | Passed |
-| **LOB Heavy DML** | `quick-update-lob-test.ps1` | **5.888 seconds** per 1,000 updates | Passed (High Overhead) |
-| **BLOB Data Type** | `quick-insert-test.ps1` | Output captured in Base64 encoding | Passed |
-| **XMLTYPE Capture** | `quick-delete-test.ps1` | Native capture verified via workaround | Passed |
+| **Scalar Column DML** | `1000 updates inside for loop` | **0.078 seconds** per 1,000 updates | Passed |
+| **LOB Heavy DML**     | `1000 updates inside for loop` | **5.888 seconds** per 1,000 updates | Passed (High Overhead) |
+| **RedoLogs To Risingwave row Latency** | `quick-uptate-test.ps1` | Output captured in Base64 encoding | Passed |
+
 
 ---
 
