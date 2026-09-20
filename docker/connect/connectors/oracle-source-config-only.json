@@ -9,7 +9,7 @@
     "database.dbname": "xepdb1",
     "database.pdb.name": "XEPDB1",
 
-    "topic.prefix": "oracle21",
+    "topic.prefix": "T24",
     "database.connection.adapter": "logminer",
     
     "snapshot.mode": "initial",
@@ -21,11 +21,11 @@
     "value.converter.schemas.enable": "false",
     
     "include.schema.changes": "true",
-    "decimal.handling.mode": "precise",
+    "decimal.handling.mode": "string",
     "time.precision.mode": "adaptive",
     
     "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
-    "schema.history.internal.kafka.topic": "schemahistory.oracle21",
+    "schema.history.internal.kafka.topic": "schemahistory.T24",
 
     "log.mining.continuous.mine": "true",
     "log.mining.select.all.tables": "false",

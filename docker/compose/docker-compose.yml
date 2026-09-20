@@ -121,6 +121,7 @@ services:
       - risingwave-data:/risingwave/data
     networks:
       - cdc-net
+      
   superset:
     build:
       context: ../superset

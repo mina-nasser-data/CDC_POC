@@ -1,0 +1,103 @@
+# Oracle XE, reproducing docker-compose.yml's "oracle" service: same image, same
+# ORACLE_PASSWORD/ORACLE_DATABASE env, same /opt/oracle/oradata datafile path, and the
+# same /container-entrypoint-initdb.d init-script mount point (now populated from
+# oracle-init-sql-configmap instead of a host bind mount).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: oracle
+  namespace: cdc-scb
+spec:
+  serviceName: oracle
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oracle
+  template:
+    metadata:
+      labels:
+        app: oracle
+    spec:
+      containers:
+        - name: oracle
+          image: gvenzl/oracle-xe:21-slim
+          ports:
+            - name: sqlnet
+              containerPort: 1521
+          env:
+            # System/admin password - from oracle-secret, matches docker-compose's
+            # ${ORACLE_PASSWORD} substitution.
+            - name: ORACLE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: oracle-secret
+                  key: ORACLE_PASSWORD
+            # Pluggable database name - non-secret constant, matches .env's ORACLE_PDB.
+            - name: ORACLE_DATABASE
+              value: "XEPDB1"
+          volumeMounts:
+            # Oracle datafiles - persists across restarts, replaces Docker's oracle-data named volume.
+            - name: oracle-data
+              mountPath: /opt/oracle/oradata
+            # CDC bootstrap scripts, run once by the image's entrypoint on first DB
+            # creation, in filename-sorted order - replaces Docker's bind mount of
+            # docker/oracle/initdb/.
+            - name: oracle-init-sql
+              mountPath: /container-entrypoint-initdb.d
+          # Oracle XE cold start (creating XEPDB1 + running 5 init scripts) can take
+          # several minutes. startupProbe holds off readiness/liveness evaluation until
+          # the instance actually answers a query, instead of guessing a fixed delay.
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - echo "SELECT 1 FROM DUAL;" | sqlplus -s system/${ORACLE_PASSWORD}@//localhost:1521/${ORACLE_DATABASE} | grep -q "1"
+            periodSeconds: 10
+            failureThreshold: 60
+            timeoutSeconds: 10
+          # Same query as docker/oracle/healthcheck/healthcheck.sh - gates whether the
+          # Service routes traffic to this pod, so downstream components (future
+          # Debezium) never attempt a connection before Oracle can actually answer SQL.
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - echo "SELECT 1 FROM DUAL;" | sqlplus -s system/${ORACLE_PASSWORD}@//localhost:1521/${ORACLE_DATABASE} | grep -q "1"
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          # Same check, run less aggressively, to restart the pod only if Oracle is
+          # genuinely stuck rather than on a transient blip.
+          #
+          # initialDelaySeconds is deliberately large: startupProbe succeeds as soon as
+          # the base XEPDB1 responds to SELECT 1, which is BEFORE our 5 custom
+          # /container-entrypoint-initdb.d scripts run. Script 01 does its own
+          # SHUTDOWN IMMEDIATE -> STARTUP MOUNT -> ALTER DATABASE ARCHIVELOG -> ALTER
+          # DATABASE OPEN cycle, which legitimately drops connectivity for a while.
+          # Without this delay, livenessProbe can restart the container mid-sequence -
+          # and since gvenzl's "already initialized" flag is set from its own base
+          # creation (not ours), an interrupted run permanently skips our init scripts
+          # on every future restart of the same volume. This happened once already.
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - echo "SELECT 1 FROM DUAL;" | sqlplus -s system/${ORACLE_PASSWORD}@//localhost:1521/${ORACLE_DATABASE} | grep -q "1"
+            initialDelaySeconds: 300
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 10
+      volumes:
+        - name: oracle-data
+          persistentVolumeClaim:
+            claimName: oracle-data-pvc
+        - name: oracle-init-sql
+          configMap:
+            name: oracle-init-sql-configmap
+            # ConfigMap-mounted files default to 0644 (not executable). 01-enable-archivelog.sh
+            # needs +x so gvenzl's entrypoint runs it as a shell subprocess (like Docker's bind
+            # mount does), rather than failing to execute or being misinterpreted.
+            defaultMode: 0755

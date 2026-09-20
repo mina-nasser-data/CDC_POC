@@ -18,7 +18,7 @@
 
     "snapshot.mode": "initial",
 
-    "table.include.list": "public.postgres_cdc_table",
+    "table.include.list": "public.stmt_entry",
 
     "key.converter": "org.apache.kafka.connect.json.JsonConverter",
     "key.converter.schemas.enable": "false",
@@ -27,7 +27,7 @@
 
     "include.schema.changes": "false",
 
-    "decimal.handling.mode": "string",
+    "decimal.handling.mode": "double",
     "time.precision.mode": "adaptive",
 
     "provide.transaction.metadata": "false"

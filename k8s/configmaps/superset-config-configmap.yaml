@@ -1,0 +1,14 @@
+# Verbatim copy of docker/superset/superset_config.py (currently baked into the Superset
+# image via Dockerfile COPY). Mounted instead of rebuilt so the same config applies in K8s.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: superset-config-configmap
+  namespace: cdc-scb
+data:
+  superset_config.py: |
+    SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://superset:superset@superset-db:5432/superset"
+
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+    }

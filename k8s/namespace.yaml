@@ -1,0 +1,6 @@
+# Dedicated namespace for the CDC/Streaming ELT stack (Oracle/Postgres -> Debezium -> Kafka -> RisingWave -> Superset).
+# Keeps all project resources isolated from other workloads in the Minikube cluster.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cdc-scb

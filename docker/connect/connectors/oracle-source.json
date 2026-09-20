@@ -11,7 +11,7 @@
     "database.dbname": "xepdb1",
     "database.pdb.name": "XEPDB1",
 
-    "topic.prefix": "oracle21",
+    "topic.prefix": "T24",
     "database.connection.adapter": "logminer",
     
     "snapshot.mode": "initial",
@@ -27,11 +27,13 @@
     "time.precision.mode": "adaptive",
     
     "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
-    "schema.history.internal.kafka.topic": "schemahistory.oracle21",
+    "schema.history.internal.kafka.topic": "schemahistory.T24",
 
     "log.mining.continuous.mine": "true",
     "log.mining.select.all.tables": "false",
     "log.mining.include.regex.table.list": "APPUSER.STMT_ENTRY",
+    "//online_catalog":"online_catalog doesn't store the dictionary information in the redo logs, less overhead and faster, Not good for tables that change it's schema frequently,",
+    "//redo_log_catalog":"redo_log_catalog stores the dictionary information in the redo logs, more overhead but more comprehensive",
     "log.mining.strategy": "online_catalog",
 
     "lob.enabled": "true",

@@ -1,0 +1,18 @@
+# Internal ClusterIP Service for Oracle. Named "oracle" to match the DNS hostname
+# ("oracle") that docker-compose.yml and the existing connector configs already use as
+# database.hostname, minimizing changes needed when Debezium is wired up later.
+apiVersion: v1
+kind: Service
+metadata:
+  name: oracle
+  namespace: cdc-scb
+spec:
+  selector:
+    app: oracle
+  ports:
+    - name: sqlnet
+      port: 1521
+      targetPort: 1521
+  # ClusterIP (default): internal-only, matching the fact that nothing in this phase
+  # requires external host access to Oracle. Docker's 1521:1521 host mapping is not
+  # reproduced here - not needed by any in-cluster component yet.

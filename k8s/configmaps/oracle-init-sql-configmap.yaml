@@ -1,0 +1,161 @@
+# Verbatim copies of docker/oracle/initdb/*, unmodified, one key per filename so the
+# mounted directory structure matches Docker's /container-entrypoint-initdb.d exactly.
+# NOTE: 02-configure-cdc.sql and 03-create-app-schema.sql contain the same hardcoded
+# Oracle credentials already stored in oracle-secret - preserved here unmodified per
+# instruction, mirroring Docker's own plain-file-mount behavior for these scripts.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oracle-init-sql-configmap
+  namespace: cdc-scb
+data:
+  01-enable-archivelog.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "=== [Oracle Init] Enabling ARCHIVELOG mode ==="
+
+    log_mode=$(sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT SQL.SQLCODE
+    SET HEADING OFF FEEDBACK OFF PAGESIZE 0
+    SELECT LOG_MODE FROM V$DATABASE;
+    EXIT;
+    EOF
+    )
+
+    if echo "$log_mode" | grep -q "ARCHIVELOG"; then
+    	echo "=== [Oracle Init] ARCHIVELOG mode already enabled ==="
+    	exit 0
+    fi
+
+    sqlplus -s / as sysdba <<'EOF'
+    WHENEVER SQLERROR EXIT SQL.SQLCODE
+
+    SHUTDOWN IMMEDIATE;
+    STARTUP MOUNT;
+    ALTER DATABASE ARCHIVELOG;
+    ALTER DATABASE OPEN;
+
+    ARCHIVE LOG LIST;
+
+    EXIT;
+    EOF
+
+    echo "=== [Oracle Init] ARCHIVELOG step complete ==="
+
+    # Why
+    # Debezium Oracle LogMiner requires redo/archive logging to mine changes.
+    # Debezium's Oracle documentation includes preparing the database with archive logging and supplemental logging for LogMiner-based capture.
+  02-configure-cdc.sql: |
+    WHENEVER SQLERROR EXIT SQL.SQLCODE;
+
+    PROMPT === [Oracle Init] Configure CDC prerequisites ===
+
+    -- Root-level logging settings
+    ALTER SESSION SET CONTAINER = CDB$ROOT;
+
+    ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
+    ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
+
+    -- Create the common Debezium connector user in the root container.
+    -- Common users must be created in CDB$ROOT and their grants propagated to the PDB.
+
+    CREATE USER C##DBZUSER IDENTIFIED BY DbzUserPass123
+      DEFAULT TABLESPACE USERS
+      QUOTA UNLIMITED ON USERS
+      CONTAINER = ALL;
+
+    GRANT CREATE SESSION TO C##DBZUSER CONTAINER = ALL;
+    GRANT SET CONTAINER TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$DATABASE TO C##DBZUSER CONTAINER = ALL;
+    GRANT FLASHBACK ANY TABLE TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ANY TABLE TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT_CATALOG_ROLE TO C##DBZUSER CONTAINER = ALL;
+    GRANT EXECUTE_CATALOG_ROLE TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ANY TRANSACTION TO C##DBZUSER CONTAINER = ALL;
+    GRANT LOGMINING TO C##DBZUSER CONTAINER = ALL;
+    GRANT CREATE TABLE TO C##DBZUSER CONTAINER = ALL;
+    GRANT CREATE SEQUENCE TO C##DBZUSER CONTAINER = ALL;
+    GRANT CREATE VIEW TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$LOG TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$LOG_HISTORY TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$LOGMNR_LOGS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$LOGMNR_CONTENTS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$LOGMNR_PARAMETERS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$LOGFILE TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$ARCHIVED_LOG TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$ARCHIVE_DEST_STATUS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$TRANSACTION TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$MYSTAT TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$STATNAME TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$PARAMETER TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$NLS_PARAMETERS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$TIMEZONE_NAMES TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$CONTAINERS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON V_$PDBS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON ALL_INDEXES TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON ALL_OBJECTS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON ALL_TABLES TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON ALL_TAB_COLUMNS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON ALL_USERS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON DBA_OBJECTS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON DBA_TABLESPACES TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON DBA_USERS TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON DBA_REGISTRY TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON SYS.OBJ$ TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON SYS.COL$ TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON SYS.IND$ TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON SYS.USER$ TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON SYS.TS$ TO C##DBZUSER CONTAINER = ALL;
+    GRANT SELECT ON SYS.PROPS$ TO C##DBZUSER CONTAINER = ALL;
+
+    PROMPT === [Oracle Init] CDC user created ===
+  03-create-app-schema.sql: |
+    WHENEVER SQLERROR EXIT SQL.SQLCODE;
+
+    PROMPT === [Oracle Init] Create application schema ===
+
+    ALTER SESSION SET CONTAINER = XEPDB1;
+
+    CREATE USER APPUSER IDENTIFIED BY AppUserPass123
+      DEFAULT TABLESPACE USERS
+      QUOTA UNLIMITED ON USERS;
+
+    GRANT CREATE SESSION TO APPUSER;
+    GRANT CREATE TABLE TO APPUSER;
+    GRANT CREATE SEQUENCE TO APPUSER;
+    GRANT CREATE VIEW TO APPUSER;
+    GRANT CREATE PROCEDURE TO APPUSER;
+    GRANT CREATE TRIGGER TO APPUSER;
+
+    PROMPT === [Oracle Init] APPUSER created ===
+  04-seed-sample-data.sql: |
+    WHENEVER SQLERROR EXIT SQL.SQLCODE;
+
+    ALTER SESSION SET CONTAINER = XEPDB1;
+    ALTER SESSION SET CURRENT_SCHEMA = APPUSER;
+
+
+
+    CREATE TABLE STMT_ENTRY (
+        ENTRY_ID        VARCHAR2(20) PRIMARY KEY,
+        ACCOUNT_NUMBER  VARCHAR2(15) NOT NULL,
+        BOOKING_DATE    DATE NOT NULL,
+        TXN_CODE        VARCHAR2(4),
+        AMOUNT          NUMBER(15,2),
+        CURRENCY        VARCHAR2(3),
+        TXN_METADATA    SYS.XMLTYPE,          -- For Phase B5 / B6 testing
+        AUDIT_TRAIL     CLOB,                 -- For Phase B4 testing
+        DIGITAL_RECEIPT BLOB                  -- For Phase B4 testing
+    );
+
+  05-configure-cdc-lob-logging.sql: |
+    WHENEVER SQLERROR EXIT SQL.SQLCODE;
+
+    PROMPT === [Oracle Init] Configure table supplemental logging ===
+
+    ALTER SESSION SET CONTAINER = XEPDB1;
+
+    ALTER TABLE APPUSER.STMT_ENTRY ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
+
+    PROMPT === [Oracle Init] Table supplemental logging configured ===

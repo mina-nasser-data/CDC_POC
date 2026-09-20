@@ -1,0 +1,16 @@
+# Persistent storage for Oracle datafiles (/opt/oracle/oradata), replacing Docker's
+# named volume "oracle-data". Uses the cluster's default StorageClass (Minikube's
+# "standard" provisioner) rather than assuming a production storage class.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: oracle-data-pvc
+  namespace: cdc-scb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # Docker's named volume is unbounded; 10Gi is a reasoned POC default for
+      # Oracle XE + LOB/XML test data, not a value taken from Docker.
+      storage: 10Gi

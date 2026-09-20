@@ -192,9 +192,12 @@ Benchmarking and validation scenarios conducted during development:
 
 | Test Scenario | Executed Script | Observed Latency / Behavior | Status |
 | :--- | :--- | :--- | :--- |
-| **Scalar Column DML** | `1000 updates inside for loop` | **0.078 seconds** per 1,000 updates | Passed |
-| **LOB Heavy DML**     | `1000 updates inside for loop` | **5.888 seconds** per 1,000 updates | Passed (High Overhead) |
-| **RedoLogs To Risingwave row Latency** | `quick-uptate-test.ps1` | Output captured in Base64 encoding | Passed |
+| **Insert Benchmark** | `Inserting 500k Sequential Rows` | **Average: 3.1 Seconds**  | Passed |
+
+| Test Scenario | Minimum Latency | Median Latency | Average Latency | Maximum Latency | Number Of Rows Tested |
+| :--- | :--- | :--- | :--- |
+| **Insert Benchmark** | **0.221s** | **3.092s**  | **3.105s** | **13.867s** | **500,000** |
+
 
 
 ---
