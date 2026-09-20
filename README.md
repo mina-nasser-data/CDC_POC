@@ -190,10 +190,6 @@ Debezium serializes keys and values into JSON with explicit schema definitions:
 
 Benchmarking and validation scenarios conducted during development:
 
-| Test Scenario | Executed Script | Observed Latency / Behavior | Status |
-| :--- | :--- | :--- | :--- |
-| **Insert Benchmark** | `Inserting 500k Sequential Rows` | **Average: 3.1 Seconds**  | Passed |
-
 | Test Scenario | Minimum Latency | Median Latency | Average Latency | Maximum Latency | Number Of Rows Tested |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Insert Benchmark** | **0.221s** | **3.092s**  | **3.105s** | **13.867s** | **500,000** |
