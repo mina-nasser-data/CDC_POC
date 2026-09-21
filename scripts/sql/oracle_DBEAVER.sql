@@ -18,19 +18,23 @@ CREATE TABLE stmt_entry (
 
 
 
-SELECT * FROM stmt_entry
+SELECT count(*) FROM stmt_entry
+WHERE ENTRY_ID LIKE 'TXN_2026%'
 
 DELETE FROM stmt_entry
+WHERE ENTRY_ID LIKE 'TXN_2027%'
 
 INSERT INTO stmt_entry 
 values('TXN_2026-1',200000000000000, TRUNC(SYSDATE),'LOL',500,'EGP','<account><test>1</test></account>','small text',UTL_RAW.CAST_TO_RAW('small text'),UTL_RAW.CAST_TO_RAW('<account><test>1</test></account>'),1515151515)
 --##############################################################################################################################
 --Inserting 500K row 
 --##############################################################################################################################
+DROP SEQUENCE bench_entry_seq
+
 CREATE SEQUENCE bench_entry_seq START WITH 1 INCREMENT BY 1 CACHE 50;
 
 DECLARE
-  c_total CONSTANT PLS_INTEGER := 500000;
+  c_total CONSTANT PLS_INTEGER := 2000;
   v_seq    PLS_INTEGER;
   v_xml    VARCHAR2(4000);
   v_ts     TIMESTAMP;
@@ -63,11 +67,11 @@ BEGIN
       entry_id, account_number, booking_date, txn_code, amount, currency,
       txn_metadata, audit_trail, digital_receipt, txn_metadata_binary, src_ts_us
     ) VALUES (
-      'TXN-2025-' || LPAD(v_seq, 6, '0'),
+      'TXN-2027-' || LPAD(v_seq, 6, '0'),
       LPAD(TO_CHAR(200000000000000 + v_seq), 15, '0'),
       DATE '2025-01-01' + MOD(v_seq, 365),
       CASE MOD(v_seq, 4) WHEN 0 THEN 'PAY' WHEN 1 THEN 'TRF' WHEN 2 THEN 'WD' ELSE 'DEP' END,
-      ROUND(100 + MOD(v_seq * 7919, 99990001) / 100, 2),
+      150000000,
       CASE MOD(v_seq, 3) WHEN 0 THEN 'EGP' WHEN 1 THEN 'USD' ELSE 'EUR' END,
       XMLTYPE(v_xml),
       'LOB AUDIT RECORD ' || v_seq,

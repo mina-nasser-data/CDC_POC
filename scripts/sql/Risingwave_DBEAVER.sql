@@ -153,6 +153,7 @@ JOIN cdc_rw_echo e
   ON l.kafka_partition = e.kafka_partition
  AND l.kafka_offset    = e.kafka_offset;
 
+ select * from cdc_stmt_entry_latency_full
 -- ============================================================================
 -- 7. BUSINESS VIEW FOR SUPERSET: latest state + its measured latency.
 --    Heaviest object (join + ROW_NUMBER + regexp on the XML).  For an
@@ -183,19 +184,52 @@ SELECT count(*)
 FROM cdc_stmt_entry_final
 WHERE oracle_to_risingwave_1s_ms IS NULL;
 
-select count(*) from cdc_stmt_entry_final
+select * from cdc_stmt_entry_final
 --##############################################################################################################################
---CREATING Materialized View for oracle
+--Kafka TO Risingwave average latency
 --##############################################################################################################################
+select round(percentile_cont(0.5) WITHIN GROUP (ORDER BY kafka_to_risingwave_ms)) as mediun_kafka_to_rw
+,round(avg(kafka_to_risingwave_ms),0) as avgkafka_to_rw  from cdc_stmt_entry_final
 
+--##############################################################################################################################
+--Percentile of kafka latency
+--##############################################################################################################################
+SELECT count(*) AS measured,
+       count(DISTINCT entry_id) AS distinct_rows,
+       count(*) FILTER (WHERE kafka_to_risingwave_ms < 0) AS negatives,
+       min(kafka_to_risingwave_ms) AS min_ms,
+       percentile_cont(0.50) WITHIN GROUP (ORDER BY kafka_to_risingwave_ms) AS p50_ms,
+       percentile_cont(0.95) WITHIN GROUP (ORDER BY kafka_to_risingwave_ms) AS p95_ms,
+       percentile_cont(0.99) WITHIN GROUP (ORDER BY kafka_to_risingwave_ms) AS p99_ms,
+       max(kafka_to_risingwave_ms) AS max_ms
+FROM cdc_stmt_entry_final
+WHERE op = 'c';
 
-
-
-select 'Insert Benchmark ' as type_of_benchmark, min(oracle_to_risingwave_ms) as minimum_latency,round(avg(oracle_to_risingwave_ms),0) as 
-average_latency ,percentile_cont(0.5) WITHIN GROUP (ORDER BY oracle_to_risingwave_ms) as median_latency,
-max(oracle_to_risingwave_ms) as maximum_latency, count(*) as number_of_rows_tested
+--##############################################################################################################################
+-- total Latency for 500k rows
+--##############################################################################################################################
+select 'Insert Benchmark' as type_of_benchmark, round(min(oracle_to_risingwave_ms)) as minimum_latency,round(avg(oracle_to_risingwave_ms),0) as 
+average_latency ,round(percentile_cont(0.5) WITHIN GROUP (ORDER BY oracle_to_risingwave_ms)) as median_latency,
+round(max(oracle_to_risingwave_ms)) as maximum_latency, count(*) as number_of_rows_tested
 from cdc_stmt_entry_final
+where entry_id like 'TXN_2025%'
+union all
+select 'Insert Benchmark with up to +/- 1s error' as type_of_benchmark, round(min(oracle_to_risingwave_1s_ms)) as minimum_latency,round(avg(oracle_to_risingwave_1s_ms),0) as 
+average_latency ,round(percentile_cont(0.5) WITHIN GROUP (ORDER BY oracle_to_risingwave_1s_ms)) as median_latency,
+round(max(oracle_to_risingwave_1s_ms)) as maximum_latency, count(*) as number_of_rows_tested
+from cdc_stmt_entry_final
+where entry_id like 'TXN_2025%'
 
+--##############################################################################################################################
+-- Latency Distribution 
+--##############################################################################################################################
+select 'Latency_Distribution' as Latency_Distribution, round(avg(oracle_to_debezium_ms)) as oracle_to_debezium_ms,round(avg(debezium_to_kafka_ms)) as debezium_to_kafka_ms 
+,round(avg(kafka_to_risingwave_ms)) as kafka_to_risingwave_ms ,round(avg(oracle_to_risingwave_ms)) as oracle_to_risingwave_ms 
+,round(avg(oracle_to_risingwave_1s_ms)) as oracle_to_risingwave_1s_ms from cdc_stmt_entry_final
+
+--##############################################################################################################################
+-- Percintile of Total Latency
+--##############################################################################################################################
 SELECT count(*) AS measured,
        count(DISTINCT entry_id) AS distinct_rows,
        count(*) FILTER (WHERE oracle_to_risingwave_ms < 0) AS negatives,
@@ -205,12 +239,15 @@ SELECT count(*) AS measured,
        percentile_cont(0.99) WITHIN GROUP (ORDER BY oracle_to_risingwave_ms) AS p99_ms,
        max(oracle_to_risingwave_ms) AS max_ms
 FROM cdc_stmt_entry_latency_full
-WHERE op = 'c' AND src_ts_us > 1700000000000000;
+WHERE op = 'c';
 
+--##############################################################################################################################
+-- Latency Overtime
+--##############################################################################################################################
 SELECT date_trunc('minute', rw_echo_ts) AS minute, count(*) AS rows,
-       round(avg(oracle_to_risingwave_ms)) AS avg_ms, max(oracle_to_risingwave_ms) AS max_ms
-FROM cdc_stmt_entry_latency_full GROUP BY 1 ORDER BY 1;
-
-
+    round(min(oracle_to_risingwave_ms)) as min_ms   ,round(avg(oracle_to_risingwave_ms)) AS avg_ms, round(max(oracle_to_risingwave_ms)) AS max_ms
+FROM cdc_stmt_entry_latency_full 
+where op='c'
+GROUP BY 1 ORDER BY minute;
 
 
