@@ -1,0 +1,51 @@
+# Kafdrop (Kafka topic browser UI), reproducing docker-compose.yml's "kafdrop"
+# service: same image, same KAFKA_BROKERCONNECT/context path. Stateless - no PVC.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafdrop
+  namespace: cdc-scb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafdrop
+  template:
+    metadata:
+      labels:
+        app: kafdrop
+    spec:
+      # Reproduces docker-compose's depends_on (kafka: condition service_healthy).
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z kafka 9092; do echo waiting for kafka; sleep 5; done
+      containers:
+        - name: kafdrop
+          image: obsidiandynamics/kafdrop:4.1.0
+          ports:
+            - name: http
+              containerPort: 9000
+          env:
+            - name: KAFKA_BROKERCONNECT
+              value: "kafka:9092"
+            - name: SERVER_SERVLET_CONTEXTPATH
+              value: "/"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9000
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5

@@ -1,0 +1,60 @@
+# Superset's metadata Postgres, reproducing docker-compose.yml's "superset-db" service:
+# same image (postgres:16) and same credentials (superset-secret).
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: superset-db
+  namespace: cdc-scb
+spec:
+  serviceName: superset-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: superset-db
+  template:
+    metadata:
+      labels:
+        app: superset-db
+    spec:
+      containers:
+        - name: superset-db
+          image: postgres:16
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_DB_PASSWORD
+          volumeMounts:
+            - name: superset-db-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U $POSTGRES_USER"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U $POSTGRES_USER"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 5
+      volumes:
+        - name: superset-db-data
+          persistentVolumeClaim:
+            claimName: superset-db-data-pvc

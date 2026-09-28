@@ -1,0 +1,50 @@
+# Periodically detects and recovers the oracle-cdc-connector from a known
+# Debezium/Oracle limitation: it cannot serialize APPUSER.STMT_ENTRY.TXN_METADATA
+# (SYS.XMLTYPE) into a schema-history record ("Invalid value: null used for
+# required field: typeName"). This crashes the connector task every time it
+# resumes streaming after a restart. TXN_METADATA is kept deliberately (see
+# docs/datatype-behavior.md section 4), so this is handled operationally here
+# instead of by dropping the column.
+#
+# A postStart hook on the connect Deployment was tried first and rejected: exec
+# lifecycle hooks are killed by the kubelet if they run longer than a few
+# seconds, and Kafka Connect's REST API can take much longer than that to
+# become reachable after a restart - the hook crash-looped the whole pod. A
+# CronJob has no such limit and runs independently of the connect pod's own
+# lifecycle, so it keeps healing the connector across every future
+# Minikube/pod restart with no manual step or script involvement required.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: oracle-connector-healer
+  namespace: cdc-scb
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: heal
+              image: curlimages/curl:8.10.1
+              command:
+                - sh
+                - -c
+                - |
+                  STATUS=$(curl -sf http://connect:8083/connectors/oracle-cdc-connector/status 2>/dev/null)
+                  if echo "$STATUS" | grep -qE '"state":[[:space:]]*"FAILED"|typeName'; then
+                    echo "Oracle connector is stuck on the known XMLTYPE schema-history bug - resetting its offset"
+                    curl -sf -X PUT http://connect:8083/connectors/oracle-cdc-connector/stop
+                    sleep 3
+                    curl -sf -X DELETE http://connect:8083/connectors/oracle-cdc-connector/offsets
+                    sleep 2
+                    curl -sf -X PUT http://connect:8083/connectors/oracle-cdc-connector/resume
+                    echo "Reset complete"
+                  else
+                    echo "Oracle connector healthy, nothing to do"
+                  fi

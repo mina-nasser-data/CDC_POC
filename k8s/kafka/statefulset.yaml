@@ -1,0 +1,108 @@
+# Kafka (KRaft mode, single broker+controller), reproducing docker-compose.yml's "kafka"
+# service: same image, same CLUSTER_ID/KRaft env vars, same /var/lib/kafka/data log dir.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: cdc-scb
+spec:
+  serviceName: kafka
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      # Kubernetes auto-injects legacy Docker-links-style env vars for every Service in
+      # the namespace (e.g. KAFKA_PORT=tcp://<ip>:9092, from the "kafka" Service).
+      # confluentinc/cp-kafka's own entrypoint script treats any KAFKA_PORT as the
+      # deprecated "port" property and refuses to start - this has nothing to do with
+      # our own env vars above. Disabling injection is the standard fix; no Docker
+      # equivalent exists because Compose never injects these.
+      enableServiceLinks: false
+      containers:
+        - name: kafka
+          image: confluentinc/cp-kafka:7.8.0
+          ports:
+            - name: broker
+              containerPort: 9092
+            - name: controller
+              containerPort: 9093
+          env:
+            - name: CLUSTER_ID
+              value: "MkU3OEVBNTcwNTJENDM2Qk"
+            - name: KAFKA_NODE_ID
+              value: "1"
+            - name: KAFKA_PROCESS_ROLES
+              value: "broker,controller"
+            # PLAINTEXT_HOST/29092 is kept listening (matches Docker's listener config
+            # exactly) even though the Service doesn't publish it - only reachable via
+            # `kubectl port-forward` directly to the pod, same tradeoff as Oracle's 1521.
+            - name: KAFKA_LISTENERS
+              value: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092"
+            # "kafka" resolves via the ClusterIP Service - same DNS name docker-compose's
+            # hostname: kafka provided, so nothing downstream (Connect, Kafdrop,
+            # RisingWave) needs to change.
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092"
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: "PLAINTEXT"
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: "CONTROLLER"
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: "1@kafka:9093"
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "1"
+            - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
+              value: "0"
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"
+            - name: KAFKA_LOG_DIRS
+              value: "/var/lib/kafka/data"
+          volumeMounts:
+            - name: kafka-data
+              mountPath: /var/lib/kafka/data
+          # Same query as docker-compose's healthcheck. First-time KRaft storage
+          # formatting can take a little while, so startupProbe holds off
+          # readiness/liveness evaluation until the broker actually answers.
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "kafka-topics --bootstrap-server localhost:9092 --list"
+            periodSeconds: 10
+            failureThreshold: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "kafka-topics --bootstrap-server localhost:9092 --list"
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "kafka-topics --bootstrap-server localhost:9092 --list"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+      volumes:
+        - name: kafka-data
+          persistentVolumeClaim:
+            claimName: kafka-data-pvc

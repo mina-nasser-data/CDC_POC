@@ -250,4 +250,40 @@ FROM cdc_stmt_entry_latency_full
 where op='c'
 GROUP BY 1 ORDER BY minute;
 
+--##############################################################################################################################
+-- Latency Distribution 
+--##############################################################################################################################
+
+select 'Minimum Latency' as latency,  oracle_to_debezium_ms, debezium_to_kafka_ms , kafka_to_risingwave_ms , oracle_to_risingwave_ms from cdc_stmt_entry_latency_full
+where oracle_to_risingwave_ms = (select min(oracle_to_risingwave_ms) from cdc_stmt_entry_latency_full )
+union all
+select 'Maximum Latency' as latency,  oracle_to_debezium_ms, debezium_to_kafka_ms , kafka_to_risingwave_ms , oracle_to_risingwave_ms from cdc_stmt_entry_latency_full
+where oracle_to_risingwave_ms = (select max(oracle_to_risingwave_ms) from cdc_stmt_entry_latency_full )
+
+
+select count(*) from cdc_stmt_entry_final
+where oracle_to_risingwave_ms >=5000
+
+select count(*) from cdc_stmt_entry_final
+where oracle_to_risingwave_ms < 5000
+
+
+select 'Insert Benchmark' as type_of_benchmark, round(min(oracle_to_risingwave_ms)) as minimum_latency,round(avg(oracle_to_risingwave_ms),0) as 
+average_latency ,round(percentile_cont(0.5) WITHIN GROUP (ORDER BY oracle_to_risingwave_ms)) as median_latency,
+round(max(oracle_to_risingwave_ms)) as maximum_latency, count(*) as number_of_rows_tested
+from cdc_stmt_entry_final
+where entry_id like 'TXN_2025%' and oracle_to_risingwave_ms < 5000
+union all
+select 'Insert Benchmark with up to +/- 1s error' as type_of_benchmark, round(min(oracle_to_risingwave_1s_ms)) as minimum_latency,round(avg(oracle_to_risingwave_1s_ms),0) as 
+average_latency ,round(percentile_cont(0.5) WITHIN GROUP (ORDER BY oracle_to_risingwave_1s_ms)) as median_latency,
+round(max(oracle_to_risingwave_1s_ms)) as maximum_latency, count(*) as number_of_rows_tested
+from cdc_stmt_entry_final
+where entry_id like 'TXN_2025%' and oracle_to_risingwave_1s_ms < 5000
+
+
+
+
+
+
+
 

@@ -44,6 +44,36 @@ spec:
             # docker/oracle/initdb/.
             - name: oracle-init-sql
               mountPath: /container-entrypoint-initdb.d
+          # Without an explicit destination, Oracle archives redo logs under
+          # $ORACLE_HOME/dbs, which is the container's ephemeral filesystem (only
+          # /opt/oracle/oradata is the persisted PVC). Every pod restart wipes those
+          # archived logs while the control file (on the persisted volume) still
+          # references them, so Debezium's LogMiner eventually fails with
+          # ORA-01284 trying to open a log that no longer exists, and CDC silently
+          # stops. This ran into that failure directly: inserts/updates/deletes made
+          # after a pod restart never reached Kafka.
+          #
+          # postStart runs on every container start (not just first-time init, unlike
+          # /container-entrypoint-initdb.d scripts), so it re-applies even after
+          # restarts. It polls for the DB to accept connections first, since Oracle's
+          # cold start can take minutes and postStart fires immediately on container
+          # creation. Failures are swallowed (no `set -e`, no non-zero exit) because a
+          # failing postStart hook gets the container killed - this is a best-effort
+          # fix-up, not something that should block startup.
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - bash
+                  - -c
+                  - |
+                    mkdir -p /opt/oracle/oradata/archive
+                    for i in $(seq 1 60); do
+                      echo "SELECT 1 FROM DUAL;" | sqlplus -s / as sysdba 2>/dev/null | grep -q 1 && break
+                      sleep 5
+                    done
+                    echo "ALTER SYSTEM SET LOG_ARCHIVE_DEST_1='LOCATION=/opt/oracle/oradata/archive' SCOPE=BOTH;" | sqlplus -s / as sysdba
+                    exit 0
           # Oracle XE cold start (creating XEPDB1 + running 5 init scripts) can take
           # several minutes. startupProbe holds off readiness/liveness evaluation until
           # the instance actually answers a query, instead of guessing a fixed delay.

@@ -1,0 +1,15 @@
+# Internal ClusterIP Service for Superset. Host access goes through
+# scripts/host/10-start-minikube.ps1's port-forward (localhost:8088), the same
+# pattern already used for oracle/connect/risingwave.
+apiVersion: v1
+kind: Service
+metadata:
+  name: superset
+  namespace: cdc-scb
+spec:
+  selector:
+    app: superset
+  ports:
+    - name: http
+      port: 8088
+      targetPort: 8088

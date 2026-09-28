@@ -1,0 +1,41 @@
+# Headless Service for Kafka (clusterIP: None). Named "kafka" to match the DNS
+# hostname that docker-compose.yml's KAFKA_ADVERTISED_LISTENERS and
+# KAFKA_CONTROLLER_QUORUM_VOTERS already use, and that Connect's
+# BOOTSTRAP_SERVERS/schema.history.internal.kafka.bootstrap.servers already expect.
+#
+# Headless (not a regular ClusterIP) because this is the StatefulSet's governing
+# Service (spec.serviceName: kafka) - the standard pairing. It matters functionally
+# here too: with a ClusterIP Service, the broker's own self-connection to the KRaft
+# controller quorum ("1@kafka:9093") is routed through kube-proxy's iptables NAT
+# ("hairpin" traffic back to the same pod), which times out unreliably on Minikube's
+# Docker driver. Headless DNS resolves "kafka" straight to the pod IP, so all traffic
+# (including this self-connection) goes pod-to-pod with no NAT hop.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: cdc-scb
+spec:
+  clusterIP: None
+  # Without this, "kafka" only resolves in DNS once the pod is Ready - but the pod
+  # can't become Ready until the broker registers with the controller quorum via
+  # "kafka:9093", which needs the name to resolve *now*, during startup. Publishing
+  # not-yet-ready addresses breaks that chicken-and-egg loop; this is the standard
+  # setting for a StatefulSet member that needs to address itself/its peers before
+  # its own readinessProbe passes.
+  publishNotReadyAddresses: true
+  selector:
+    app: kafka
+  ports:
+    # Broker listener - used by every in-cluster client (Connect, Kafdrop, RisingWave).
+    - name: broker
+      port: 9092
+      targetPort: 9092
+    # KRaft controller listener - the broker's own KAFKA_CONTROLLER_QUORUM_VOTERS
+    # ("1@kafka:9093") resolves through this same Service back to itself.
+    - name: controller
+      port: 9093
+      targetPort: 9093
+  # Docker's 29092:29092 host mapping (for host-machine Kafka clients) is not
+  # reproduced here - use `kubectl port-forward` against the pod directly if host
+  # access is ever needed.

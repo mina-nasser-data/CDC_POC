@@ -1,0 +1,22 @@
+# NodePort Service for Kafdrop - unlike Oracle/Kafka/Connect (internal-only, no human
+# needs to browse them directly), Kafdrop is a UI dashboard meant to stay open in a
+# browser. NodePort gives it a stable host-reachable address for as long as Minikube
+# is running, without requiring a `kubectl port-forward` process to stay alive in a
+# terminal. Reproduces the spirit of Docker's "${KAFDROP_PORT}:9000" host mapping
+# (persistent host access) using Minikube's own mechanism instead of a literal port
+# number, since Docker's env-driven KAFDROP_PORT has no direct k8s equivalent.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafdrop
+  namespace: cdc-scb
+spec:
+  type: NodePort
+  selector:
+    app: kafdrop
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+      # Left unset: Kubernetes assigns one from its NodePort range (30000-32767).
+      # `minikube service kafdrop -n cdc-scb --url` prints the resulting address.

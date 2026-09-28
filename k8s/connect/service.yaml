@@ -1,0 +1,21 @@
+# Internal ClusterIP Service for Kafka Connect. Named "connect" to match the DNS
+# hostname ("connect") that docker-compose.yml's CONNECT_REST_ADVERTISED_HOST_NAME
+# already uses, and the name the connector-registration Job will target for its REST
+# calls (POST/PUT http://connect:8083/connectors/...).
+apiVersion: v1
+kind: Service
+metadata:
+  name: connect
+  namespace: cdc-scb
+spec:
+  selector:
+    app: connect
+  ports:
+    - name: rest
+      port: 8083
+      targetPort: 8083
+  # ClusterIP (default): internal-only. Docker's 8083:8083 host mapping (used for
+  # local `Invoke-RestMethod`/curl against the Connect REST API from the host) is not
+  # reproduced here - use `kubectl port-forward svc/connect 8083:8083` if host access
+  # to the REST API is needed (e.g. to run the existing docker/connect/scripts/*.ps1
+  # scripts against the k8s Connect instance).

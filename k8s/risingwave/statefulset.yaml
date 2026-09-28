@@ -1,0 +1,74 @@
+# RisingWave (single_node mode), reproducing docker-compose.yml's "risingwave" service.
+# Note: docker/risingwave/start-risingwave.sh (multi-process standalone bootstrap) is
+# NOT what Docker Compose actually runs - Compose uses the image's built-in
+# `single_node` command directly, so that's what's reproduced here, per the project's
+# rule of treating actual Docker Compose behavior (not unused scripts) as the reference.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: risingwave
+  namespace: cdc-scb
+spec:
+  serviceName: risingwave
+  replicas: 1
+  selector:
+    matchLabels:
+      app: risingwave
+  template:
+    metadata:
+      labels:
+        app: risingwave
+    spec:
+      # Reproduces docker-compose's depends_on (kafka: condition service_healthy) -
+      # RisingWave's Kafka source/sink connections would otherwise fail on cold start.
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z kafka 9092; do echo waiting for kafka; sleep 5; done
+      containers:
+        - name: risingwave
+          image: risingwavelabs/risingwave:v2.0.5
+          # args (not command) - preserves the image's own ENTRYPOINT, matching
+          # docker-compose's `command: single_node` which only overrides CMD.
+          args:
+            - single_node
+          ports:
+            - name: sql
+              containerPort: 4566
+            - name: dashboard
+              containerPort: 5691
+          env:
+            - name: RW_SINGLE_NODE_STORE_DIRECTORY
+              value: "/risingwave/data"
+          volumeMounts:
+            - name: risingwave-data
+              mountPath: /risingwave/data
+          # No healthcheck exists in docker-compose.yml for this service; a plain TCP
+          # check on the Postgres-wire SQL port is the minimal equivalent signal that
+          # RisingWave is actually accepting queries.
+          startupProbe:
+            tcpSocket:
+              port: 4566
+            periodSeconds: 5
+            failureThreshold: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: 4566
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 4566
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+      volumes:
+        - name: risingwave-data
+          persistentVolumeClaim:
+            claimName: risingwave-data-pvc

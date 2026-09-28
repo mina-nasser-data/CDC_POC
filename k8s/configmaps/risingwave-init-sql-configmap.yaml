@@ -1,0 +1,44 @@
+# RisingWave bootstrap DDL - the ingestion side of scripts/sql/Risingwave_DBEAVER.sql
+# (section 1), which is the project's current authority for the RisingWave pipeline.
+#
+# Scope note: only the business-data path is created here. The latency chain from that
+# same script (cdc_stmt_entry_audit -> cdc_stmt_entry_latency -> cdc_rw_echo_sink ->
+# cdc_rw_echo -> cdc_stmt_entry_latency_full -> cdc_stmt_entry_final) is deliberately
+# NOT included, because it measures from "SRC_TS_US" and also reads
+# "TXN_METADATA_BINARY" - neither column exists in the Oracle STMT_ENTRY table that
+# this cluster's oracle-init-sql-configmap creates. Building those views against the
+# current Oracle schema would yield NULL for every oracle_to_*_ms metric, i.e. latency
+# numbers that silently mean nothing. Align the Oracle schema first, then add them.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risingwave-init-sql-configmap
+  namespace: cdc-scb
+data:
+  01-create-cdc-table.sql: |
+    -- Debezium CDC from Kafka into RisingWave.
+    -- CREATE TABLE (not CREATE SOURCE) + FORMAT DEBEZIUM gives upsert semantics, so
+    -- insert/update/delete from Oracle are applied as changes to this table.
+    -- 'earliest' rebuilds full state from the topic's history.
+    --
+    -- Columns mirror the live APPUSER.STMT_ENTRY schema. TXN_METADATA_BINARY from
+    -- Risingwave_DBEAVER.sql is omitted: that column does not exist in this cluster's
+    -- Oracle table, and declaring it would add a permanently-NULL column.
+    CREATE TABLE IF NOT EXISTS cdc_stmt_entry_main (
+        entry_id              VARCHAR PRIMARY KEY,
+        account_number        VARCHAR,
+        booking_date          TIMESTAMP,
+        txn_code              VARCHAR,
+        amount                DECIMAL,
+        currency              VARCHAR,
+        txn_metadata          VARCHAR,
+        audit_trail           VARCHAR,
+        digital_receipt       BYTEA
+    )
+    WITH (
+        connector = 'kafka',
+        topic = 'T24.APPUSER.STMT_ENTRY',
+        properties.bootstrap.server = 'kafka:9092',
+        scan.startup.mode = 'earliest'
+    )
+    FORMAT DEBEZIUM ENCODE JSON;

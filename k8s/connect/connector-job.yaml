@@ -1,0 +1,58 @@
+# Registers the Oracle Debezium connector with Kafka Connect's REST API, reproducing
+# docker/connect/scripts/register-oracle-connector.ps1's
+# `POST http://localhost:8083/connectors` call - just run as a one-shot in-cluster Job
+# instead of a host-side script, using connect-secret's oracle-source-register.json
+# (kept as a Secret, not a ConfigMap, because it embeds the plaintext C##DBZUSER
+# password) as the request body.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: oracle-connector-register
+  namespace: cdc-scb
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-connect
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z connect 8083; do echo waiting for connect; sleep 5; done
+      containers:
+        - name: register-oracle-connector
+          image: curlimages/curl:8.10.1
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "=== Registering oracle-cdc-connector ==="
+              # No --fail: a 409 Conflict (connector already registered from a prior
+              # run of this Job/StatefulSet restart) is an expected, non-error outcome
+              # for this one-shot registration step - print the response either way.
+              http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+                -X POST \
+                -H "Content-Type: application/json" \
+                --data @/connector-config/oracle-source-register.json \
+                http://connect:8083/connectors)
+              cat /tmp/response.json
+              echo
+              echo "HTTP status: $http_code"
+              if [ "$http_code" != "201" ] && [ "$http_code" != "409" ]; then
+                echo "Unexpected status from Connect REST API"
+                exit 1
+              fi
+          volumeMounts:
+            - name: connector-config
+              mountPath: /connector-config
+              readOnly: true
+      volumes:
+        - name: connector-config
+          secret:
+            secretName: connect-secret
+            items:
+              - key: oracle-source-register.json
+                path: oracle-source-register.json

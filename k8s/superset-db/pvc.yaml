@@ -1,0 +1,13 @@
+# Persistent storage for Superset's own metadata database (dashboards, charts,
+# datasource connections, users), replacing Docker's superset-db-data named volume.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: superset-db-data-pvc
+  namespace: cdc-scb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

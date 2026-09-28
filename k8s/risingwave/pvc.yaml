@@ -1,0 +1,16 @@
+# Persistent storage for RisingWave's single_node embedded storage (/risingwave/data),
+# replacing Docker's named volume "risingwave-data". Uses the cluster's default
+# StorageClass (Minikube's "standard" provisioner).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: risingwave-data-pvc
+  namespace: cdc-scb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # Docker's named volume is unbounded; 10Gi is a reasoned POC default, not a
+      # value taken from Docker.
+      storage: 10Gi

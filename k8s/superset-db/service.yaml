@@ -1,0 +1,14 @@
+# Internal ClusterIP Service for superset-db. Named "superset-db" to match the DNS
+# hostname docker-compose.yml's SQLALCHEMY_DATABASE_URI already uses.
+apiVersion: v1
+kind: Service
+metadata:
+  name: superset-db
+  namespace: cdc-scb
+spec:
+  selector:
+    app: superset-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432

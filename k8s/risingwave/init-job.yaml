@@ -1,0 +1,51 @@
+# Applies the RisingWave bootstrap DDL (risingwave-init-sql-configmap) against the
+# running RisingWave instance, the same way connect/connector-job.yaml registers the
+# Debezium connector. In Docker this DDL is run by hand from DBeaver
+# (scripts/sql/Risingwave_DBEAVER.sql); this Job makes it reproducible in-cluster.
+#
+# Re-runnable: the DDL uses CREATE TABLE IF NOT EXISTS, so applying it again is a no-op
+# rather than an error. Delete and re-apply the Job to re-run it
+# (kubectl delete job risingwave-init -n cdc-scb).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: risingwave-init
+  namespace: cdc-scb
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-risingwave
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z risingwave 4566; do echo waiting for risingwave; sleep 5; done
+      containers:
+        - name: apply-ddl
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          # RisingWave speaks the Postgres wire protocol: default user "root", no
+          # password, database "dev". ON_ERROR_STOP makes the Job fail loudly rather
+          # than reporting success after a failed statement.
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "=== Applying RisingWave bootstrap DDL ==="
+              psql -h risingwave -p 4566 -U root -d dev \
+                   -v ON_ERROR_STOP=1 \
+                   -f /init-sql/01-create-cdc-table.sql
+              echo "=== Tables now defined ==="
+              psql -h risingwave -p 4566 -U root -d dev -c "SHOW TABLES;"
+          volumeMounts:
+            - name: init-sql
+              mountPath: /init-sql
+              readOnly: true
+      volumes:
+        - name: init-sql
+          configMap:
+            name: risingwave-init-sql-configmap

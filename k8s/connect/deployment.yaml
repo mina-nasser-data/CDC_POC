@@ -1,0 +1,102 @@
+# Kafka Connect / Debezium, reproducing docker-compose.yml's "connect" service: same
+# custom image (quay.io/debezium/connect:3.6 + ojdbc11.jar Oracle driver, built from
+# docker/connect/Dockerfile), same worker env vars, same REST port 8083.
+#
+# IMPORTANT - image build step (no equivalent in Docker Compose, which builds it inline
+# via `build: context: ../connect`): this image is not on a public registry, so it must
+# be built and made available to the cluster before this Deployment can start:
+#   minikube image build -t connect-oracle:local -f docker/connect/Dockerfile docker/connect
+# If using a real registry instead, push there and update `image:` accordingly.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: connect
+  namespace: cdc-scb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: connect
+  template:
+    metadata:
+      labels:
+        app: connect
+    spec:
+      # Reproduces docker-compose's depends_on (kafka, oracle: condition service_healthy) -
+      # Kafka Connect's AdminClient will otherwise retry/crash-loop against a broker that
+      # isn't listening yet on first cluster bring-up.
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z kafka 9092; do echo waiting for kafka; sleep 5; done
+        - name: wait-for-oracle
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z oracle 1521; do echo waiting for oracle; sleep 5; done
+      containers:
+        - name: connect
+          image: connect-oracle:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: rest
+              containerPort: 8083
+          env:
+            - name: BOOTSTRAP_SERVERS
+              value: "kafka:9092"
+            - name: GROUP_ID
+              value: "connect-cluster"
+            - name: CONFIG_STORAGE_TOPIC
+              value: "connect-configs"
+            - name: OFFSET_STORAGE_TOPIC
+              value: "connect-offsets"
+            - name: STATUS_STORAGE_TOPIC
+              value: "connect-status"
+            - name: CONFIG_STORAGE_REPLICATION_FACTOR
+              value: "1"
+            - name: OFFSET_STORAGE_REPLICATION_FACTOR
+              value: "1"
+            - name: STATUS_STORAGE_REPLICATION_FACTOR
+              value: "1"
+            - name: KEY_CONVERTER
+              value: "org.apache.kafka.connect.json.JsonConverter"
+            - name: VALUE_CONVERTER
+              value: "org.apache.kafka.connect.json.JsonConverter"
+            - name: KEY_CONVERTER_SCHEMAS_ENABLE
+              value: "true"
+            - name: VALUE_CONVERTER_SCHEMAS_ENABLE
+              value: "true"
+            # "connect" resolves via the ClusterIP Service below - same DNS name
+            # docker-compose's hostname: connect provided.
+            - name: CONNECT_REST_ADVERTISED_HOST_NAME
+              value: "connect"
+            - name: CONNECT_PLUGIN_PATH
+              value: "/kafka/connect,/kafka/connect/oracle-drivers"
+          # Kafka Connect's REST API answers once the worker has joined the cluster and
+          # is ready to accept connector requests.
+          startupProbe:
+            httpGet:
+              path: /connectors
+              port: 8083
+            periodSeconds: 10
+            failureThreshold: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /connectors
+              port: 8083
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /connectors
+              port: 8083
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5

@@ -1,0 +1,16 @@
+# Persistent storage for Kafka's log segments (/var/lib/kafka/data), replacing Docker's
+# named volume "kafka-data". Uses the cluster's default StorageClass (Minikube's
+# "standard" provisioner) rather than assuming a production storage class.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-data-pvc
+  namespace: cdc-scb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # Docker's named volume is unbounded; 10Gi is a reasoned POC default for a
+      # single-broker CDC pipeline, not a value taken from Docker.
+      storage: 10Gi

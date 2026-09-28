@@ -1,0 +1,20 @@
+# Internal ClusterIP Service for RisingWave. Named "risingwave" for in-cluster DNS
+# (e.g. future Superset datasource config). Docker's "4566:4566"/"5691:5691" host
+# mappings (DBeaver, the meta dashboard) are not reproduced here - use
+# `kubectl port-forward svc/risingwave 4566:4566` (and/or 5691:5691) the same way
+# Oracle/Kafdrop are accessed from the host.
+apiVersion: v1
+kind: Service
+metadata:
+  name: risingwave
+  namespace: cdc-scb
+spec:
+  selector:
+    app: risingwave
+  ports:
+    - name: sql
+      port: 4566
+      targetPort: 4566
+    - name: dashboard
+      port: 5691
+      targetPort: 5691

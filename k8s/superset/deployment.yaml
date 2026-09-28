@@ -1,0 +1,143 @@
+# Superset, reproducing docker-compose.yml's "superset" service: same custom image
+# (apache/superset:6.0.0 + psycopg2-binary + sqlalchemy-risingwave, built from
+# docker/superset/Dockerfile), same startup command (db upgrade -> create-admin ->
+# init -> gunicorn), same env vars.
+#
+# IMPORTANT - image build step (no equivalent in Docker Compose, which builds it
+# inline via `build: context: ../superset`): this image is not on a public registry,
+# so it must be built and made available to the cluster before this Deployment can
+# start:
+#   minikube image build -t superset-oracle:local -f docker/superset/Dockerfile docker/superset
+# If using a real registry instead, push there and update `image:` accordingly.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superset
+  namespace: cdc-scb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: superset
+  template:
+    metadata:
+      labels:
+        app: superset
+    spec:
+      # Reproduces docker-compose's depends_on (superset-db, risingwave: service_started).
+      initContainers:
+        - name: wait-for-superset-db
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z superset-db 5432; do echo waiting for superset-db; sleep 5; done
+        - name: wait-for-risingwave
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z risingwave 4566; do echo waiting for risingwave; sleep 5; done
+      containers:
+        - name: superset
+          image: superset-oracle:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8088
+          env:
+            - name: SUPERSET_LOAD_EXAMPLES
+              value: "no"
+            - name: SUPERSET_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_SECRET_KEY
+            - name: SUPERSET_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_DB_USER
+            - name: SUPERSET_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_DB_PASSWORD
+            - name: SUPERSET_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_DB_NAME
+            # $(VAR) here is Kubernetes' own env-var substitution (references the vars
+            # defined above in this same list), not a shell expansion - reproduces
+            # docker-compose's literal SQLALCHEMY_DATABASE_URI without re-hardcoding
+            # the credentials a second time.
+            - name: SQLALCHEMY_DATABASE_URI
+              value: "postgresql+psycopg2://$(SUPERSET_DB_USER):$(SUPERSET_DB_PASSWORD)@superset-db:5432/$(SUPERSET_DB_NAME)"
+            - name: SUPERSET_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_ADMIN_USER
+            - name: SUPERSET_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_ADMIN_PASSWORD
+            - name: SUPERSET_ADMIN_FIRSTNAME
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_ADMIN_FIRSTNAME
+            - name: SUPERSET_ADMIN_LASTNAME
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_ADMIN_LASTNAME
+            - name: SUPERSET_ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: superset-secret
+                  key: SUPERSET_ADMIN_EMAIL
+          command:
+            - /bin/sh
+            - -c
+            - |
+              superset db upgrade &&
+              superset fab create-admin \
+                --username "$SUPERSET_ADMIN_USER" \
+                --firstname "$SUPERSET_ADMIN_FIRSTNAME" \
+                --lastname "$SUPERSET_ADMIN_LASTNAME" \
+                --email "$SUPERSET_ADMIN_EMAIL" \
+                --password "$SUPERSET_ADMIN_PASSWORD" || true &&
+              superset init &&
+              gunicorn \
+                --bind 0.0.0.0:8088 \
+                --workers 2 \
+                --timeout 120 \
+                "superset.app:create_app()"
+          # superset init (roles/permissions setup + db upgrade) can take a couple of
+          # minutes on first run - startupProbe holds off readiness/liveness evaluation
+          # until gunicorn is actually serving, same pattern as oracle/connect.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8088
+            periodSeconds: 10
+            failureThreshold: 40
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8088
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8088
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
