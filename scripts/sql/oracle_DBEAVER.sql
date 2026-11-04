@@ -67,7 +67,7 @@ BEGIN
       entry_id, account_number, booking_date, txn_code, amount, currency,
       txn_metadata, audit_trail, digital_receipt, txn_metadata_binary, src_ts_us
     ) VALUES (
-      'TXN-2027-' || LPAD(v_seq, 6, '0'),
+      'TXN-2028-' || LPAD(v_seq, 6, '0'),
       LPAD(TO_CHAR(200000000000000 + v_seq), 15, '0'),
       DATE '2025-01-01' + MOD(v_seq, 365),
       CASE MOD(v_seq, 4) WHEN 0 THEN 'PAY' WHEN 1 THEN 'TRF' WHEN 2 THEN 'WD' ELSE 'DEP' END,

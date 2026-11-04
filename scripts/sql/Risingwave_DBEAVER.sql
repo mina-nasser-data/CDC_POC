@@ -286,4 +286,16 @@ where entry_id like 'TXN_2025%' and oracle_to_risingwave_1s_ms < 5000
 
 
 
+select 'Insert Benchmark' as type_of_benchmark, round(min(oracle_to_risingwave_ms)) as minimum_latency,round(avg(oracle_to_risingwave_ms),0) as 
+average_latency ,round(percentile_cont(0.5) WITHIN GROUP (ORDER BY oracle_to_risingwave_ms)) as median_latency,
+round(max(oracle_to_risingwave_ms)) as maximum_latency, count(*) as number_of_rows_tested
+from cdc_stmt_entry_final
+where entry_id like 'TXN_2028%' 
+
+
+
+
+
+
+
 
